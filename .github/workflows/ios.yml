@@ -1,0 +1,19 @@
+# Builds an unsigned GlassMusic.ipa on a GitHub Mac; download it from the run's Artifacts and sign/install it with Sideloadly.
+name: iPhone build
+on:
+  push:
+    paths: [index.html, ios/**, .github/workflows/ios.yml]
+  workflow_dispatch:
+jobs:
+  ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: cd ios && xcodegen generate
+      - run: xcodebuild -project ios/GlassMusic.xcodeproj -target GlassMusic -configuration Release -sdk iphoneos SYMROOT="$PWD/build" CODE_SIGNING_ALLOWED=NO build
+      - run: mkdir Payload && cp -R build/Release-iphoneos/GlassMusic.app Payload/ && zip -qr GlassMusic.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GlassMusic-ipa
+          path: GlassMusic.ipa

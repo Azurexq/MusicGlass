@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c1c20">
+<title>Glass Music</title>
+<style>
+  :root { --text: #f4f4f6; --dim: rgba(255,255,255,.6); --line: rgba(255,255,255,.14); --fill: rgba(255,255,255,.08);
+    --fill2: rgba(255,255,255,.16); --r: 10px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font: 14px/1.35 -apple-system, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif; color: var(--text);
+    background: #1c1c20; overflow: hidden; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  /* blurred cover behind everything, fading to the base colour */
+  #bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  #bg img { position: absolute; left: -10%; top: -30%; width: 120%; height: 90%; object-fit: cover;
+    filter: blur(90px) saturate(1.5); opacity: .55; transition: opacity .8s; }
+  #bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 20%, #1c1c20 75%); }
+
+  .app { position: relative; z-index: 1; display: grid; grid-template-columns: 60px 1fr; height: 100%; }
+  nav { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0 110px; }
+  nav .logo { width: 30px; height: 30px; margin-bottom: 18px; }
+  nav button { width: 40px; height: 40px; border: 0; border-radius: var(--r); background: none; color: var(--dim);
+    display: grid; place-items: center; }
+  nav button:hover, nav button[aria-current="true"] { color: var(--text); background: var(--fill); }
+  svg { width: 20px; height: 20px; fill: currentColor; }
+
+  main { overflow-y: auto; padding: 22px 22px 130px 12px; }
+  .view[hidden] { display: none; }
+  .head { display: flex; gap: 18px; align-items: flex-end; margin-bottom: 18px; flex-wrap: wrap; }
+  .mosaic { width: 148px; height: 148px; border-radius: 12px; overflow: hidden; display: grid; grid-template: 1fr 1fr / 1fr 1fr;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4); flex: none; background: var(--fill); }
+  .mosaic img, .mosaic div { width: 100%; height: 100%; object-fit: cover; }
+  .info { flex: 1; min-width: 200px; }
+  .info h1 { font-size: 30px; margin: 0 0 2px; letter-spacing: -.4px; }
+  .info .desc { color: var(--dim); font-size: 13px; margin-bottom: 10px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 9px; border-radius: 8px;
+    background: var(--fill); border: 1px solid var(--line); margin-bottom: 14px; }
+  .btns, .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .tools { margin-left: auto; }
+  .btn { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--fill); font-size: 13px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transition: background .15s, transform .1s; }
+  .btn:hover { background: var(--fill2); } .btn:active { transform: scale(.96); }
+  .btn.primary { background: rgba(255,255,255,.9); color: #111; border-color: transparent; }
+  .btn svg { width: 15px; height: 15px; }
+  .field { display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border-radius: 8px;
+    background: var(--fill); border: 1px solid var(--line); }
+  .field svg { width: 14px; height: 14px; color: var(--dim); flex: none; }
+  .field input { background: none; border: 0; outline: none; width: 160px; font-size: 13px; }
+  .field input::placeholder { color: var(--dim); }
+  .field.big { height: 46px; border-radius: 12px; max-width: 620px; } .field.big input { width: 100%; font-size: 16px; }
+  .file { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .file:focus-visible + .btn { outline: 2px solid #fff; }
+
+  .list { border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); padding: 6px;
+    backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); }
+  .row { display: grid; grid-template-columns: 44px 1fr auto 32px; align-items: center; gap: 12px; padding: 6px 8px;
+    border-radius: 8px; cursor: pointer; }
+  .row:hover, .row:focus-visible { background: var(--fill2); outline: none; }
+  .row.now .t { color: #ffd2d6; }
+  .art { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: linear-gradient(135deg,#565663,#2c2c34);
+    display: grid; place-items: center; color: var(--dim); font-size: 18px; }
+  .meta { min-width: 0; } .meta div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta .a { color: var(--dim); font-size: 13px; }
+  .e { display: inline-grid; place-items: center; width: 14px; height: 14px; font-size: 9px; border-radius: 3px;
+    background: rgba(255,255,255,.25); color: #fff; margin-right: 5px; vertical-align: 1px; }
+  .dur { color: var(--dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .kebab { width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--dim); }
+  .kebab:hover { background: var(--fill2); color: var(--text); }
+  .empty { color: var(--dim); text-align: center; padding: 28px 12px; }
+  h2 { font-size: 15px; margin: 22px 2px 10px; color: var(--dim); font-weight: 600; }
+  .src { font-size: 11px; color: var(--dim); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; margin-right: 8px; }
+
+  #menu { position: fixed; z-index: 20; min-width: 170px; padding: 5px; border-radius: 12px; display: none;
+    background: rgba(40,40,46,.75); border: 1px solid var(--line); backdrop-filter: blur(30px) saturate(1.6);
+    -webkit-backdrop-filter: blur(30px) saturate(1.6); box-shadow: 0 12px 40px rgba(0,0,0,.45); }
+  #menu.on { display: block; }
+  #menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 8px; }
+  #menu button:hover { background: var(--fill2); } #menu button:disabled { color: var(--dim); cursor: default; background: none; }
+
+  .glass { background: rgba(38,38,44,.55); border: 1px solid var(--line); backdrop-filter: blur(40px) saturate(1.7);
+    -webkit-backdrop-filter: blur(40px) saturate(1.7); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 40px rgba(0,0,0,.4); }
+  #player { position: fixed; z-index: 10; left: 72px; right: 12px; bottom: 12px; border-radius: 16px; padding: 10px 14px;
+    display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 14px; }
+  #player .cur { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .ctrl { display: flex; flex-direction: column; align-items: center; gap: 4px; width: min(420px, 40vw); }
+  .ctrl .b { display: flex; gap: 6px; align-items: center; }
+  .ib { width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; display: grid; place-items: center; }
+  .ib:hover { background: var(--fill2); } .ib.main { background: #fff; color: #111; }
+  .seek { display: flex; align-items: center; gap: 8px; width: 100%; font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  input[type=range] { flex: 1; accent-color: #fff; height: 4px; }
+  #player .side { display: flex; justify-content: flex-end; }
+
+  #sheet { position: fixed; z-index: 15; right: 12px; bottom: 96px; width: min(440px, calc(100% - 24px)); border-radius: 16px;
+    padding: 10px; display: none; }
+  #sheet.on { display: block; }
+  #sheet .top { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 8px; color: var(--dim); font-size: 13px; }
+  #sheet iframe { width: 100%; height: 300px; border: 0; border-radius: 12px; display: block; }
+  #toast { position: fixed; z-index: 30; left: 50%; top: 16px; transform: translateX(-50%); padding: 8px 14px; border-radius: 10px;
+    display: none; } #toast.on { display: block; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+  .card { background: none; border: 0; color: inherit; text-align: left; padding: 0; cursor: pointer; font: inherit; font-size: 13px; }
+  .card img { width: 100%; aspect-ratio: 1; border-radius: 10px; object-fit: cover; display: block; margin-bottom: 6px; }
+  .card:focus-visible { outline: 2px solid #fff; border-radius: 10px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chips .btn[aria-pressed=true] { background: rgba(255,255,255,.9); color: #111; }
+  dialog.glass { color: var(--text); padding: 16px; width: min(460px, calc(100% - 32px)); border: 0; }
+  dialog::backdrop { background: rgba(0,0,0,.4); }
+  dialog .field { width: 100%; margin: 10px 0; } dialog .field input { width: 100%; }
+  #impres { max-height: 50vh; overflow: auto; font-size: 13px; }
+  #impres .r { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  #impres .r span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (max-width: 720px) {
+    .app { grid-template-columns: 1fr; }
+    nav { position: fixed; z-index: 11; left: 0; right: 0; bottom: 0; flex-direction: row; justify-content: center; gap: 28px;
+      padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); background: rgba(28,28,32,.7);
+      backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); }
+    nav .logo { display: none; }
+    main { padding: 16px 16px 190px; }
+    #player { left: 8px; right: 8px; bottom: calc(58px + env(safe-area-inset-bottom)); grid-template-columns: minmax(0,1fr) auto; }
+    #player .ctrl { width: auto; } #player .seek, #player .side { display: none; }
+    #sheet { bottom: calc(140px + env(safe-area-inset-bottom)); right: 8px; width: calc(100% - 16px); }
+    .mosaic { width: 112px; height: 112px; }
+    .tools { margin-left: 0; width: 100%; } .tools .field { flex: 1; } .tools .field input { width: 100%; }
+    .src { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="bg"><img id="bgimg" alt=""></div>
+
+<div class="app">
+  <nav aria-label="Main">
+    <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="rgba(255,255,255,.15)"/>
+      <path d="M7 14v-4M10 17V7M13 15V9M16 13v-2" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+    <button data-view="home" aria-current="true" aria-label="Home" title="Home">
+      <svg viewBox="0 0 24 24"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg></button>
+    <button data-view="lib" aria-current="false" aria-label="Library" title="Library">
+      <svg viewBox="0 0 24 24"><path d="M4 3h3v18H4zM9 3h3v18H9zm5.2.8 2.9-.8 4.7 17.4-2.9.8z"/></svg></button>
+    <button data-view="browse" aria-current="false" aria-label="Browse genres" title="Browse genres">
+      <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg></button>
+    <button data-view="search" aria-current="false" aria-label="Search" title="Search">
+      <svg viewBox="0 0 24 24"><path d="M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg></button>
+  </nav>
+
+  <main>
+    <section class="view" id="v-home">
+      <div class="head" style="align-items:center">
+        <div class="info"><h1>Home</h1><div class="desc" id="recwhy">Finding songs for you…</div></div>
+        <div class="tools">
+          <button class="btn primary" id="recplay"><svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Play mix</button>
+          <button class="btn" id="recrefresh"><svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 7.7 6h-2.1A6 6 0 1 0 18 14h2.1A8 8 0 1 1 17.7 6.3L20 4v6h-6l2.3-2.3A6 6 0 0 0 12 6z"/></svg>Refresh</button>
+        </div>
+      </div>
+      <h2>Recommended for you</h2>
+      <div class="list" id="homelist"><div class="empty">Loading…</div></div>
+    </section>
+
+    <section class="view" id="v-lib" hidden>
+      <div class="chips" id="plchips"></div>
+      <div class="head">
+        <div class="mosaic" id="mosaic"></div>
+        <div class="info">
+          <h1 id="pltitle">Library</h1>
+          <div class="desc" id="pldesc">Saved songs and your own MP3s</div>
+          <div class="pill" id="stats"></div>
+          <div class="btns">
+            <button class="btn primary" id="playall"><svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Play all</button>
+            <button class="btn" id="shuffle" aria-label="Shuffle" title="Shuffle"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4V8h-2.6l-8 10H3v-2h2.4l8-10H17zm0 10 4 4-4 4v-3h-3.6l-2.3-2.9 1.3-1.6 2 2.5H17zM3 6h3.4l2.3 2.9-1.3 1.6-2-2.5H3z"/></svg></button>
+          </div>
+        </div>
+        <div class="tools">
+          <label class="field"><svg viewBox="0 0 24 24"><path d="M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg>
+            <input id="libfilter" type="search" placeholder="Search in library" aria-label="Search in library"></label>
+          <input class="file" id="files" type="file" accept="audio/*,.mp3,.m4a,.wav,.flac,.ogg" multiple>
+          <label class="btn" for="files"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>Add MP3s</label>
+          <button class="btn" id="importbtn">Import playlist</button>
+          <button class="btn" id="deletepl" hidden>Delete playlist</button>
+          <button class="btn" id="queueall"><svg viewBox="0 0 24 24"><path d="M3 6h12v2H3zm0 5h12v2H3zm0 5h8v2H3zm14-3h2v3h3v2h-3v3h-2v-3h-3v-2h3z"/></svg>Add to queue</button>
+        </div>
+      </div>
+      <div class="list" id="liblist"></div>
+    </section>
+
+    <section class="view" id="v-browse" hidden>
+      <div class="head" style="align-items:center">
+        <div class="info"><h1 id="gname">Browse</h1><div class="desc">Pick a genre</div></div>
+        <div class="tools"><button class="btn primary" id="gplay"><svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Play top songs</button></div>
+      </div>
+      <div class="chips" id="genres"></div>
+      <h2>Top songs</h2>
+      <div class="list" id="gtop"><div class="empty">Loading…</div></div>
+      <h2>Top playlists</h2>
+      <div class="cards" id="gpl"></div>
+      <div id="gplview" hidden>
+        <h2 id="gplname"></h2>
+        <div class="btns" style="margin-bottom:10px"><button class="btn primary" id="gplplay">Play</button><button class="btn" id="gplsave">Save to library</button></div>
+        <div class="list" id="gpltracks"></div>
+      </div>
+      <h2>New &amp; upcoming</h2>
+      <div class="list" id="gnew"></div>
+      <h2>Niche picks <span style="font-weight:400">· smaller artists similar to this genre's chart toppers</span></h2>
+      <div class="list" id="gniche"></div>
+    </section>
+
+    <section class="view" id="v-search" hidden>
+      <form id="searchform" role="search">
+        <label class="field big"><svg viewBox="0 0 24 24"><path d="M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg>
+          <input id="q" type="search" placeholder="Songs, artists, albums" aria-label="Search Deezer" autocomplete="off"></label>
+      </form>
+      <h2>Songs</h2>
+      <div class="list" id="searchlist"><div class="empty">Search Deezer for songs to play or save.</div></div>
+      <h2>SoundCloud</h2>
+      <form id="scform" class="btns">
+        <label class="field" style="flex:1;min-width:220px"><input id="scurl" type="url" style="width:100%"
+          placeholder="Paste a soundcloud.com link" aria-label="SoundCloud link"></label>
+        <button class="btn">Add link</button>
+        <button type="button" class="btn" id="scsearch">Find on SoundCloud</button>
+      </form>
+      <div class="list" id="sclist" style="margin-top:10px"><div class="empty">Paste a SoundCloud track link to play it or add it to a playlist.</div></div>
+    </section>
+  </main>
+</div>
+
+<div id="player" class="glass" role="region" aria-label="Player">
+  <div class="cur"><div class="art" id="pcover">♪</div>
+    <div class="meta"><div class="t" id="ptitle">Nothing playing</div><div class="a" id="partist"></div></div></div>
+  <div class="ctrl">
+    <div class="b">
+      <button class="ib" id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zm3 7 10-7v14z"/></svg></button>
+      <button class="ib main" id="toggle" aria-label="Play"><svg viewBox="0 0 24 24" id="ticon"><path d="M7 4v16l13-8z"/></svg></button>
+      <button class="ib" id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5l10 7-10 7z"/></svg></button>
+    </div>
+    <div class="seek"><span id="tcur">0:00</span><input type="range" id="seek" min="0" max="100" step="0.1" value="0" aria-label="Seek"><span id="tdur">0:00</span></div>
+  </div>
+  <div class="side"><button class="btn" id="full" hidden>Full track</button></div>
+</div>
+
+<div id="sheet" class="glass" role="dialog" aria-label="Embedded player">
+  <div class="top"><span id="sheettitle"></span><button class="kebab" id="sheetclose" aria-label="Close">✕</button></div>
+  <div id="embed"></div>
+</div>
+<dialog id="imp" class="glass" aria-labelledby="imph">
+  <form id="impform">
+    <h2 id="imph" style="margin:0 0 4px;font-size:18px">Import from Deezer</h2>
+    <div class="desc">Paste a Deezer playlist link, or your profile link to pick from your public playlists.</div>
+    <label class="field"><input id="implink" placeholder="deezer.com/playlist/… or deezer.com/profile/…" aria-label="Deezer link" required></label>
+    <div class="btns"><button class="btn primary">Import</button><button class="btn" type="button" id="impcancel">Close</button></div>
+    <div id="impres" aria-live="polite"></div>
+  </form>
+  <form id="txtform" style="margin-top:14px">
+    <h2 style="margin:0 0 4px;font-size:15px">Private playlist? Paste its songs</h2>
+    <div class="desc">One "Artist - Title" per line, or upload a CSV export (for example from TuneMyMusic or Soundiiz). Each song is matched on Deezer.</div>
+    <label class="field"><input id="txtname" placeholder="Playlist name" aria-label="Playlist name" required></label>
+    <label class="field"><textarea id="txtlist" rows="5" style="width:100%" aria-label="Track list" placeholder="Daft Punk - One More Time"></textarea></label>
+    <div class="btns"><label class="btn">Upload CSV<input type="file" id="txtfile" accept=".csv,.txt" hidden></label><button class="btn primary">Match on Deezer</button></div>
+  </form>
+</dialog>
+<div id="menu" role="menu"></div>
+<div id="toast" class="glass" role="status"></div>
+<audio id="audio"></audio>
+
+<script>
+const $ = id => document.getElementById(id);
+const audio = $('audio');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+const mmss = s => { s = Math.round(s || 0); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const PLAY = '<path d="M7 4v16l13-8z"/>', PAUSE = '<path d="M6 4h4v16H6zm8 0h4v16h-4z"/>';
+
+const state = { lib: loadLib(), search: [], rec: [], queue: [], qi: -1, lists: {}, recent: loadRecent(), recSeeds: '', playlists: loadPl(), cur: 'lib', sc: [], g: {}, genre: null };
+function loadRecent() { try { return JSON.parse(localStorage.getItem('gm-recent')) || []; } catch { return []; } }
+function noteRecent(t) {
+  if (!t.artistId) return;
+  state.recent = [{ id: t.artistId, name: t.artist }, ...state.recent.filter(a => a.id !== t.artistId)].slice(0, 10);
+  try { localStorage.setItem('gm-recent', JSON.stringify(state.recent)); } catch {}
+}
+
+// ---------- storage: library metadata in localStorage, MP3 bytes in IndexedDB ----------
+function loadLib() { try { return JSON.parse(localStorage.getItem('gm-lib')) || []; } catch { return []; } }
+function loadPl() { try { return JSON.parse(localStorage.getItem('gm-pl')) || []; } catch { return []; } }
+function savePl() { try { localStorage.setItem('gm-pl', JSON.stringify(state.playlists)); } catch { toast('Could not save playlists'); } }
+const curPl = () => state.playlists.find(p => p.id === state.cur);
+const curList = () => curPl()?.tracks || state.lib;
+function saveLib() { try { localStorage.setItem('gm-lib', JSON.stringify(state.lib)); } catch { toast('Could not save library'); } }
+const dbp = new Promise((ok, no) => {
+  const r = indexedDB.open('glassmusic', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('files');
+  r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
+});
+const idb = (mode, fn) => dbp.then(db => new Promise((ok, no) => {
+  const tx = db.transaction('files', mode), req = fn(tx.objectStore('files'));
+  tx.oncomplete = () => ok(req.result); tx.onerror = tx.onabort = () => no(tx.error);
+}));
+
+// ---------- Deezer (no CORS headers, but JSONP is supported) ----------
+function jsonp(url) {
+  return new Promise((ok, fail) => {
+    const cb = 'dz' + Math.random().toString(36).slice(2), s = document.createElement('script');
+    const done = () => { delete window[cb]; s.remove(); };
+    window[cb] = r => { done(); r && r.error ? fail(new Error(r.error.message || 'Deezer error')) : ok(r); };
+    s.onerror = () => { done(); fail(new Error('Deezer unreachable')); };
+    s.src = `${url}${url.includes('?') ? '&' : '?'}output=jsonp&callback=${cb}`;
+    document.head.append(s);
+  });
+}
+const fromDeezer = t => ({ key: 'dz' + t.id, source: 'deezer', id: t.id, title: t.title, artist: t.artist.name, artistId: t.artist.id,
+  cover: t.album.cover_medium, big: t.album.cover_big, duration: t.duration, explicit: t.explicit_lyrics });
+
+// ---------- rendering ----------
+const art = t => t.cover ? `<img class="art" src="${esc(t.cover)}" alt="" loading="lazy">` : `<div class="art">♪</div>`;
+function renderList(el, list, empty) {
+  state.lists[el.id] = list;
+  const now = state.queue[state.qi]?.key;
+  el.innerHTML = list.length ? list.map((t, i) => `
+    <div class="row${t.key === now ? ' now' : ''}" tabindex="0" data-i="${i}">
+      ${art(t)}
+      <div class="meta"><div class="t">${esc(t.title)}</div>
+        <div class="a">${t.explicit ? '<span class="e" title="Explicit">E</span>' : ''}${esc(t.artist)}</div></div>
+      <div class="dur">${t.source === 'file' ? '<span class="src">MP3</span>' : t.source === 'soundcloud' ? '<span class="src">SC</span>' : ''}${t.duration ? mmss(t.duration) : ''}</div>
+      <button class="kebab" data-menu="${i}" aria-label="More options for ${esc(t.title)}">⋮</button>
+    </div>`).join('') : `<div class="empty">${empty}</div>`;
+}
+function libShown() {
+  const f = $('libfilter').value.trim().toLowerCase();
+  return f ? curList().filter(t => (t.title + ' ' + t.artist).toLowerCase().includes(f)) : curList();
+}
+function renderChips() {
+  const pl = curPl();
+  if (!pl) state.cur = 'lib';
+  $('plchips').innerHTML = [['lib', 'All songs'], ...state.playlists.map(p => [p.id, p.name])]
+    .map(([id, n]) => `<button class="btn" data-pl="${esc(id)}" aria-pressed="${id === state.cur}">${esc(n)}</button>`).join('');
+  $('pltitle').textContent = pl ? pl.name : 'Library';
+  $('pldesc').textContent = pl ? (pl.own ? 'Your playlist' : 'Imported from Deezer') : 'Saved songs and your own MP3s';
+  $('deletepl').hidden = !pl;
+}
+function renderLib() {
+  renderChips();
+  const list = curList(), total = list.reduce((a, t) => a + (t.duration || 0), 0), h = Math.floor(total / 3600), m = Math.round(total % 3600 / 60);
+  $('stats').textContent = `♫ ${list.length} tracks · ${h ? h + ' hr ' : ''}${m} min`;
+  const covers = [...new Set(list.map(t => t.cover).filter(Boolean))].slice(0, 4);
+  $('mosaic').innerHTML = [0, 1, 2, 3].map(i => covers.length === 0 ? '<div class="art" style="border-radius:0">♪</div>'
+    : `<img src="${esc(covers[i % covers.length])}" alt="">`).join('');
+  if (!state.queue.length && covers[0]) setBg(covers[0].replace('250x250', '500x500'));
+  renderList($('liblist'), libShown(), list.length ? 'No matches.' : 'Your library is empty. Search for songs or add MP3s.');
+}
+const setBg = src => { if (src) $('bgimg').src = src; };
+function rerender() { renderLib(); renderList($('searchlist'), state.search, 'No results.'); renderList($('homelist'), state.rec, 'No recommendations yet.');
+  renderList($('sclist'), state.sc, 'Paste a SoundCloud track link to play it or add it to a playlist.');
+  for (const id of ['gtop', 'gnew', 'gniche', 'gpltracks']) renderList($(id), state.g[id] || [], 'Nothing here for this genre.'); }
+
+// ---------- recommendations: Deezer artist radio (artist + similar artists) seeded by what you play ----------
+function seeds() {
+  const libArtists = [...state.lib, ...state.playlists.flatMap(p => p.tracks)].filter(t => t.artistId).reverse().map(t => ({ id: t.artistId, name: t.artist }));
+  const all = [...state.recent, ...libArtists], out = [];
+  for (const a of all) if (!out.some(x => x.id === a.id)) out.push(a);
+  return out.slice(0, 3);
+}
+async function recommend(force) {
+  const sd = seeds(), sig = sd.map(a => a.id).join();
+  if (!force && sig === state.recSeeds && state.rec.length) return;
+  state.recSeeds = sig;
+  $('homelist').innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    let lists;
+    if (sd.length) {
+      lists = (await Promise.all(sd.map(a => jsonp(`https://api.deezer.com/artist/${a.id}/radio?limit=25`).catch(() => ({ data: [] })))))
+        .map(r => r.data.map(fromDeezer));
+      $('recwhy').textContent = 'Based on ' + sd.map(a => a.name).join(', ');
+    } else {
+      lists = [(await jsonp('https://api.deezer.com/chart/0/tracks?limit=30')).data.map(fromDeezer)];
+      $('recwhy').textContent = 'Top charts right now. Play some songs to personalise this.';
+    }
+    const owned = new Set(state.lib.map(t => t.key)), seen = new Set(), mix = [];
+    for (let i = 0; mix.length < 30 && lists.some(l => i < l.length); i++) // interleave the seed radios
+      for (const l of lists) { const t = l[i]; if (t && !owned.has(t.key) && !seen.has(t.key)) { seen.add(t.key); mix.push(t); } }
+    state.rec = mix;
+  } catch (err) { state.rec = []; $('recwhy').textContent = err.message; }
+  rerender();
+}
+$('recrefresh').onclick = () => recommend(true);
+$('recplay').onclick = () => state.rec.length && play(state.rec, 0);
+
+// ---------- browse by genre: Deezer charts, editor picks, smaller related artists ----------
+async function loadGenres() {
+  try {
+    const r = await jsonp('https://api.deezer.com/genre');
+    $('genres').innerHTML = [...r.data, ...EXTRA].map(g => `<button class="btn" data-g="${g.id}" aria-pressed="false">${esc(g.id ? g.name : 'All genres')}</button>`).join('');
+    pickGenre(r.data[0]);
+  } catch (err) { $('gtop').innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
+}
+// Deezer has no House/Jungle genre ids, so these chips are built from Deezer's playlist search.
+// shortcut: each "fresh" query is hand-picked; change it if Deezer renames those playlists
+const EXTRA = [{ id: 'house', name: 'House', q: 'house', fresh: 'fresh house' }, { id: 'jungle', name: 'Jungle', q: 'jungle', fresh: 'new era jungle' }];
+async function searchGenre(g, safe) {
+  const [pls, fresh] = await Promise.all([g.q, g.fresh].map(q => safe(jsonp(`https://api.deezer.com/search/playlist?limit=25&q=${encodeURIComponent(q)}`))));
+  // Deezer editors' playlists named after the genre come first; "Artist Editor" ones are about one artist (e.g. the band Jungle)
+  const rank = p => (/deezer/i.test(p.user?.name) ? 0 : 2) + (p.title.toLowerCase().includes(g.q) ? 0 : 1);
+  pls.data = pls.data.filter(p => !/artist editor/i.test(p.user?.name)).sort((a, b) => rank(a) - rank(b));
+  const tracks = id => id ? safe(jsonp(`https://api.deezer.com/playlist/${id}/tracks?limit=50`)).then(r => ({ data: r.data.filter(t => t.readable !== false) })) : { data: [] };
+  const [top, nw] = await Promise.all([tracks(pls.data[0]?.id), tracks(fresh.data[0]?.id)]);
+  return [top, { data: pls.data.slice(0, 12) }, nw];
+}
+$('genres').onclick = e => { const b = e.target.closest('[data-g]'); if (b) pickGenre(EXTRA.find(x => x.id === b.dataset.g) || { id: +b.dataset.g, name: b.textContent }); };
+async function pickGenre(g) {
+  const my = state.genre = g;
+  $('genres').querySelectorAll('[data-g]').forEach(b => b.setAttribute('aria-pressed', b.dataset.g === String(g.id)));
+  $('gname').textContent = g.id ? g.name : 'Browse';
+  state.g = {}; $('gplview').hidden = true; $('gpl').innerHTML = '';
+  for (const id of ['gtop', 'gnew', 'gniche']) $(id).innerHTML = '<div class="empty">Loading…</div>';
+  const set = (id, list) => { if (state.genre === my) { state.g[id] = list; rerender(); } };
+  const safe = p => p.catch(() => ({ data: [] }));
+  const [top, pls, sel] = g.q ? await searchGenre(g, safe) : await Promise.all([
+    safe(jsonp(`https://api.deezer.com/chart/${g.id}/tracks?limit=50`)),
+    safe(jsonp(`https://api.deezer.com/chart/${g.id}/playlists?limit=12`)),
+    safe(jsonp(`https://api.deezer.com/editorial/${g.id}/selection`))]);
+  if (state.genre !== my) return;
+  const topTracks = top.data.map(fromDeezer);
+  set('gtop', topTracks);
+  $('gpl').innerHTML = pls.data.map(p => `<button class="card" data-p="${p.id}"><img src="${esc(p.picture_medium)}" alt="" loading="lazy">${esc(p.title)}</button>`).join('')
+    || '<div class="empty">No playlists for this genre.</div>';
+  // New & upcoming: first track of each album Deezer's editors picked for this genre
+  const albums = sel.data.filter(a => a.type === 'album' || a.record_type).slice(0, 12);
+  set('gnew', g.q ? sel.data.map(fromDeezer) : (await Promise.all(albums.map(a => safe(jsonp(`https://api.deezer.com/album/${a.id}/tracks?limit=1`))
+    .then(r => r.data[0] && fromDeezer({ ...r.data[0], artist: r.data[0].artist || a.artist, album: a })))))
+    .filter(t => t && t.artistId));
+  // Niche: artists related to the chart's top artists, fewest fans first
+  const big = [...new Set(top.data.map(t => t.artist.id))], seen = new Set(big);
+  const rel = (await Promise.all(big.slice(0, 5).map(id => safe(jsonp(`https://api.deezer.com/artist/${id}/related?limit=50`))))).flatMap(r => r.data)
+    .filter(a => !seen.has(a.id) && seen.add(a.id) && a.nb_fan > 200).sort((a, b) => a.nb_fan - b.nb_fan).slice(0, 15);
+  set('gniche', (await Promise.all(rel.map(a => safe(jsonp(`https://api.deezer.com/artist/${a.id}/top?limit=1`)).then(r => r.data[0] && fromDeezer(r.data[0])))))
+    .filter(Boolean));
+}
+$('gplay').onclick = () => state.g.gtop?.length && play(state.g.gtop, 0);
+$('gpl').onclick = async e => {
+  const c = e.target.closest('[data-p]'); if (!c) return;
+  const id = c.dataset.p, v = $('gplview'); v.hidden = false; v.dataset.id = id;
+  $('gplname').textContent = c.textContent; $('gpltracks').innerHTML = '<div class="empty">Loading…</div>';
+  try { const r = await jsonp(`https://api.deezer.com/playlist/${id}/tracks?limit=100`); if (v.dataset.id === id) { state.g.gpltracks = r.data.filter(t => t.readable !== false).map(fromDeezer); rerender(); } }
+  catch (err) { $('gpltracks').innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
+  v.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+$('gplplay').onclick = () => state.g.gpltracks?.length && play(state.g.gpltracks, 0);
+$('gplsave').onclick = () => importPl($('gplview').dataset.id);
+
+// ---------- views ----------
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-current', x === b));
+  document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'v-' + b.dataset.view);
+  if (b.dataset.view === 'search') $('q').focus();
+  if (b.dataset.view === 'home') recommend();
+  if (b.dataset.view === 'browse' && !state.genre) loadGenres();
+});
+
+$('searchform').onsubmit = async e => {
+  e.preventDefault();
+  const q = $('q').value.trim(); if (!q) return;
+  $('searchlist').innerHTML = '<div class="empty">Searching…</div>';
+  try { state.search = (await jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=50`)).data.map(fromDeezer); rerender(); }
+  catch (err) { $('searchlist').innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
+};
+$('libfilter').oninput = renderLib;
+
+// ---------- rows: click to play, ⋮ for menu ----------
+document.querySelectorAll('.list').forEach(el => {
+  el.onclick = e => {
+    const k = e.target.closest('[data-menu]'), row = e.target.closest('.row');
+    if (k) return openMenu(e, el.id, +k.dataset.menu);
+    if (row) play(state.lists[el.id], +row.dataset.i);
+  };
+  el.onkeydown = e => { if (e.key === 'Enter' && e.target.classList.contains('row')) el.onclick(e); };
+});
+
+const menu = $('menu');
+function openMenu(e, listId, i) {
+  e.stopPropagation();
+  const t = state.lists[listId][i], inLib = state.lib.some(x => x.key === t.key);
+  const items = [['Play next', () => enqueue([t], true)], ['Add to queue', () => enqueue([t])]];
+  if (listId === 'liblist') items.push([state.cur === 'lib' ? 'Remove from library' : 'Remove from playlist', () => remove(t)]);
+  if (listId !== 'liblist' || state.cur !== 'lib') items.push([inLib ? 'In library' : 'Add to library', inLib ? null : () => { state.lib.push(t); saveLib(); rerender(); toast('Added to library'); }]);
+  const r = e.target.getBoundingClientRect();
+  items.push(['Add to playlist…', () => showMenu(r, [...state.playlists.map(p => [esc(p.name), () => addTo(p, t)]), ['+ New playlist', () => {
+    const n = prompt('Name for the new playlist')?.trim();
+    if (n) { const p = { id: 'u' + Date.now(), name: n, tracks: [], own: true }; state.playlists.push(p); addTo(p, t); }
+  }]])]);
+  if (t.source === 'deezer') items.push(['Open full track', () => openDeezer(t)]);
+  showMenu(r, items);
+}
+function addTo(p, t) {
+  if (p.tracks.some(x => x.key === t.key)) return toast('Already in ' + p.name);
+  p.tracks.push(t); savePl(); rerender(); toast('Added to ' + p.name);
+}
+function showMenu(r, items) {
+  menu.innerHTML = items.map(([l, f], j) => `<button role="menuitem" data-j="${j}" ${f ? '' : 'disabled'}>${l}</button>`).join('');
+  menu.querySelectorAll('button').forEach(b => b.onclick = ev => { ev.stopPropagation(); closeMenu(); items[b.dataset.j][1](); });
+  menu.classList.add('on');
+  menu.style.left = Math.max(8, Math.min(r.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 8)) + 'px';
+  menu.style.top = (r.bottom + menu.offsetHeight + 8 > innerHeight ? r.top - menu.offsetHeight - 4 : r.bottom + 4) + 'px';
+  menu.querySelector('button:not(:disabled)')?.focus();
+}
+const closeMenu = () => menu.classList.remove('on');
+document.addEventListener('click', e => { if (!menu.contains(e.target)) closeMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+async function remove(t) {
+  const pl = curPl();
+  if (pl) { pl.tracks = pl.tracks.filter(x => x.key !== t.key); savePl(); return rerender(); }
+  state.lib = state.lib.filter(x => x.key !== t.key); saveLib(); rerender();
+  if (t.source === 'file' && !state.playlists.some(p => p.tracks.some(x => x.key === t.key))) idb('readwrite', s => s.delete(t.key)).catch(() => {});
+}
+
+// ---------- MP3 import ----------
+const fileDuration = f => new Promise(ok => {
+  const a = new Audio(), u = URL.createObjectURL(f);
+  a.preload = 'metadata'; a.onloadedmetadata = a.onerror = () => { URL.revokeObjectURL(u); ok(a.duration || 0); }; a.src = u;
+});
+// ID3v2.3/2.4 title, artist and cover. Untagged files fall back to "Artist - Title" filenames.
+async function id3(f) {
+  const h = new Uint8Array(await f.slice(0, 10).arrayBuffer()), v = h[3], ss = (a, i) => (a[i] << 21) | (a[i + 1] << 14) | (a[i + 2] << 7) | a[i + 3];
+  if (String.fromCharCode(h[0], h[1], h[2]) !== 'ID3' || v < 3 || v > 4 || (v === 3 && h[5] & 0x80)) return {}; // v2.2 and unsynchronised v2.3 tags are rare: skip them
+  const b = new Uint8Array(await f.slice(10, 10 + ss(h, 6)).arrayBuffer()), dv = new DataView(b.buffer), out = {};
+  const text = (enc, a) => new TextDecoder(['latin1', a[0] === 0xFE ? 'utf-16be' : 'utf-16le', 'utf-16be', 'utf-8'][enc] || 'latin1').decode(a).replace(/\0+$/, '').split('\0').join(', ').trim();
+  const skip = (a, i, wide) => { if (!wide) { while (i < a.length && a[i]) i++; return i + 1; } while (i < a.length && (a[i] || a[i + 1])) i += 2; return i + 2; };
+  let p = h[5] & 0x40 ? (v === 4 ? ss(b, 0) : 4 + dv.getUint32(0)) : 0;
+  while (p + 10 <= b.length && b[p]) {
+    const id = String.fromCharCode(...b.subarray(p, p + 4)), size = v === 4 ? ss(b, p + 4) : dv.getUint32(p + 4), d = b.subarray(p + 10, p + 10 + size);
+    p += 10 + size;
+    if (id === 'TIT2' || id === 'TPE1') out[id] = text(d[0], d.subarray(1));
+    else if (id === 'APIC' && (!out.pic || d[skip(d, 1)] === 3)) { // keep the front cover (type 3) over other pictures
+      const m = skip(d, 1), mime = text(0, d.subarray(1, m)), wide = d[0] === 1 || d[0] === 2;
+      out.pic = new Blob([d.subarray(skip(d, m + 1, wide))], { type: mime.includes('/') ? mime : 'image/' + (mime.toLowerCase() || 'jpeg') });
+    }
+  }
+  return { title: out.TIT2, artist: out.TPE1, cover: out.pic && await thumb(out.pic) };
+}
+// shortcut: covers are 120px JPEG data URLs kept in localStorage (~5 MB total); move them to IndexedDB if libraries get big
+async function thumb(blob) {
+  try {
+    const bmp = await createImageBitmap(blob), s = Math.min(1, 120 / Math.max(bmp.width, bmp.height)), c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.7);
+  } catch { return ''; }
+}
+$('files').onchange = async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  let added = 0; const pl = curPl();
+  for (const f of files) {
+    const key = 'f' + Date.now() + Math.random().toString(36).slice(2);
+    try { await idb('readwrite', s => s.put(f, key)); } catch { toast('Not enough storage for ' + f.name); continue; }
+    const name = f.name.replace(/\.[^.]+$/, ''), [artist, title] = name.includes(' - ') ? name.split(/ - (.+)/) : ['Unknown artist', name];
+    const tag = await id3(f).catch(() => ({})); // a broken tag must not stop the import
+    const t = { key, source: 'file', title: tag.title || title.trim(), artist: tag.artist || artist.trim(), cover: tag.cover || '', duration: await fileDuration(f) };
+    state.lib.push(t); pl?.tracks.push(t); // also into the open playlist, if any
+    added++;
+  }
+  saveLib(); if (pl) savePl(); rerender(); if (added) toast(`Added ${added} file${added > 1 ? 's' : ''}` + (pl ? ' to ' + pl.name : ''));
+};
+
+// ---------- playlists: switch, delete, import from Deezer ----------
+$('plchips').onclick = e => { const b = e.target.closest('[data-pl]'); if (b) { state.cur = b.dataset.pl; $('libfilter').value = ''; renderLib(); } };
+$('deletepl').onclick = () => {
+  const pl = curPl();
+  if (pl && confirm(`Delete "${pl.name}"? Songs saved to your library stay.`)) { state.playlists = state.playlists.filter(p => p !== pl); savePl(); renderLib(); }
+};
+const imp = $('imp'), impres = $('impres');
+$('importbtn').onclick = () => { impres.innerHTML = ''; $('implink').value = ''; imp.showModal(); };
+$('impcancel').onclick = () => imp.close();
+const privErr = 'This playlist is private. Make it public in Deezer for a moment, or paste its songs below.';
+async function importPl(id) {
+  impres.textContent = 'Importing…';
+  try {
+    const meta = await jsonp(`https://api.deezer.com/playlist/${id}`), tracks = [];
+    for (let i = 0; ; i += 100) {
+      const r = await jsonp(`https://api.deezer.com/playlist/${id}/tracks?limit=100&index=${i}`);
+      tracks.push(...r.data.filter(t => t.readable !== false && t.album).map(fromDeezer));
+      impres.textContent = `Importing… ${tracks.length} / ${meta.nb_tracks}`;
+      if (!r.next || !r.data.length) break;
+    }
+    const old = state.playlists.find(p => p.id === 'dz' + id);
+    const pl = { id: 'dz' + id, name: meta.title, tracks: [...tracks, ...(old?.tracks.filter(t => t.source !== 'deezer') || [])] }; // keep SoundCloud/MP3 songs you added
+    state.playlists = [...state.playlists.filter(p => p.id !== pl.id), pl]; // re-importing replaces = re-sync
+    state.cur = pl.id; savePl(); imp.close();
+    document.querySelector('nav [data-view="lib"]').click(); renderLib();
+    const skipped = meta.nb_tracks - tracks.length;
+    toast(`Imported ${tracks.length} songs from "${meta.title}"${skipped > 0 ? ` (${skipped} unavailable in your region)` : ""}`);
+  } catch (err) { impres.textContent = /no data|permission|800|200/i.test(err.message) ? privErr : err.message; if (!imp.open) toast(impres.textContent); }
+}
+async function listUser(uid) {
+  impres.textContent = 'Loading your playlists…';
+  try {
+    const r = await jsonp(`https://api.deezer.com/user/${uid}/playlists?limit=100`);
+    impres.innerHTML = r.data.length ? r.data.map(p => `<div class="r"><span>${esc(p.title)} · ${p.nb_tracks} tracks</span><button class="btn" type="button" data-imp="${p.id}">Import</button></div>`).join('')
+      : 'No public playlists on this profile.';
+  } catch (err) { impres.textContent = 'Could not load that profile: ' + err.message; }
+}
+// ---------- private playlists: match a pasted list / CSV export on Deezer ----------
+// shortcut: simple CSV split (quotes group commas; an escaped "" inside a field is dropped), fine for playlist exports.
+const csvRow = l => { const out = []; let cur = '', q = false; for (const c of l) { if (c === '"') q = !q; else if (c === ',' && !q) { out.push(cur); cur = ''; } else cur += c; } out.push(cur); return out.map(x => x.trim()); };
+function parseList(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean), head = lines[0] ? csvRow(lines[0]).map(h => h.toLowerCase()) : [];
+  const ti = head.findIndex(h => /^(track|title|song|track name|song name)/.test(h)), ai = head.findIndex(h => /^artist/.test(h)), ii = head.indexOf('isrc');
+  if (ti >= 0 && ai >= 0) return lines.slice(1).map(csvRow).map(r => ({ title: r[ti], artist: r[ai], isrc: ii >= 0 ? r[ii] : '' })).filter(r => r.title);
+  return lines.map(l => { const m = l.match(/^(.+?)\s+[-–—]\s+(.+)$/); return m ? { artist: m[1], title: m[2] } : { artist: '', title: l }; });
+}
+async function matchOne(r) {
+  const ok = d => d && d.readable !== false && d.album && fromDeezer(d);
+  if (r.isrc) { try { const d = await jsonp(`https://api.deezer.com/track/isrc:${encodeURIComponent(r.isrc)}`); if (ok(d)) return ok(d); } catch {} }
+  const a = r.artist.split(/,|&|\bfeat\.?|\bft\.?/i)[0].trim(), title = r.title.toLowerCase(); // first artist: "Shy FX, UK Apache" never matches strictly
+  for (const q of [a ? `artist:"${a}" track:"${r.title}"` : '', `${a} ${r.title}`].filter(Boolean)) {
+    try { const ds = (await jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=5`)).data; const d = ds.find(d => d.title.toLowerCase() === title) || ds[0]; if (ok(d)) return ok(d); } catch {}
+  }
+  return null;
+}
+$('txtfile').onchange = async e => { const f = e.target.files[0]; if (f) { $('txtlist').value = await f.text(); if (!$('txtname').value) $('txtname').value = f.name.replace(/\.\w+$/, ''); } };
+$('txtform').onsubmit = async e => {
+  e.preventDefault();
+  const rows = parseList($('txtlist').value), name = $('txtname').value.trim(), tracks = [], missed = [];
+  if (!rows.length) return impres.textContent = 'Paste at least one song.';
+  for (let i = 0; i < rows.length; i += 5) { // 5 at a time stays under Deezer's rate limit
+    (await Promise.all(rows.slice(i, i + 5).map(matchOne))).forEach((t, j) => t ? tracks.push(t) : missed.push(rows[i + j]));
+    impres.textContent = `Matching… ${Math.min(i + 5, rows.length)} / ${rows.length}`;
+  }
+  const uniq = [...new Map(tracks.map(t => [t.key, t])).values()];
+  const pl = { id: 'u' + Date.now(), name, tracks: uniq, own: true };
+  state.playlists.push(pl); state.cur = pl.id; savePl();
+  impres.textContent = `Matched ${uniq.length} of ${rows.length}.` + (missed.length ? ' Not found: ' + missed.slice(0, 10).map(r => (r.artist ? r.artist + ' - ' : '') + r.title).join('; ') + (missed.length > 10 ? '…' : '') : '');
+  document.querySelector('nav [data-view="lib"]').click(); renderLib();
+  if (!missed.length) imp.close();
+};
+impres.onclick = e => { const b = e.target.closest('[data-imp]'); if (b) importPl(b.dataset.imp); };
+$('impform').onsubmit = e => {
+  e.preventDefault();
+  const v = $('implink').value.trim(), m = v.match(/playlist\/(\d+)/) || v.match(/^(\d+)$/), u = v.match(/profile\/(\d+)/);
+  if (m) importPl(m[1]);
+  else if (u) listUser(u[1]);
+  else if (/link\.deezer\.com|deezer\.page\.link/.test(v)) impres.textContent = "Short links can't be read here. Open the link in your browser, then copy the full deezer.com address it goes to.";
+  else impres.textContent = "That doesn't look like a Deezer playlist or profile link.";
+};
+
+// ---------- playback queue ----------
+let seq = 0, objUrl;
+function play(list, i) { state.queue = list.slice(); state.qi = i; load(); }
+function enqueue(tracks, next) {
+  if (!state.queue.length) return play(tracks, 0);
+  state.queue.splice(next ? state.qi + 1 : state.queue.length, 0, ...tracks);
+  toast(next ? 'Playing next' : 'Added to queue');
+}
+async function load() {
+  const t = state.queue[state.qi], my = ++seq; if (!t) return;
+  $('ptitle').textContent = t.title; $('partist').textContent = t.artist + (t.source === 'deezer' ? ' · preview' : t.source === 'soundcloud' ? ' · SoundCloud' : '');
+  $('pcover').outerHTML = t.cover ? `<img class="art" id="pcover" src="${esc(t.cover)}" alt="">` : '<div class="art" id="pcover">♪</div>';
+  $('full').hidden = t.source !== 'deezer';
+  setBg(t.big || t.cover); noteRecent(t); rerender();
+  // shortcut: SoundCloud only plays in its own embed, so the queue doesn't auto-advance past it.
+  if (t.source === 'soundcloud') return scPlay(t.url);
+  let src;
+  try {
+    if (t.source === 'file') {
+      const blob = await idb('readonly', s => s.get(t.key));
+      if (!blob) throw new Error('File missing from this device');
+      if (objUrl) URL.revokeObjectURL(objUrl);
+      src = objUrl = URL.createObjectURL(blob);
+    } else src = (await jsonp(`https://api.deezer.com/track/${t.id}`)).preview; // preview links expire, so fetch a fresh one
+    if (!src) throw new Error('No preview for this track');
+  } catch (err) { if (my === seq) toast(err.message); return; }
+  if (my !== seq) return;
+  audio.src = src; audio.play().catch(() => {});
+  if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title: t.title, artist: t.artist,
+    artwork: t.big ? [{ src: t.big, sizes: '500x500' }] : [] });
+}
+const step = d => { if (state.qi + d >= 0 && state.qi + d < state.queue.length) { state.qi += d; load(); } };
+$('next').onclick = () => step(1);
+$('prev').onclick = () => audio.currentTime > 3 ? (audio.currentTime = 0) : step(-1);
+$('toggle').onclick = () => !audio.src ? state.lib.length && play(state.lib, 0) : audio.paused ? audio.play() : audio.pause();
+audio.onended = () => step(1);
+audio.onplay = audio.onpause = () => { $('ticon').innerHTML = audio.paused ? PLAY : PAUSE; $('toggle').ariaLabel = audio.paused ? 'Play' : 'Pause'; };
+audio.ontimeupdate = () => { $('tcur').textContent = mmss(audio.currentTime); $('tdur').textContent = mmss(audio.duration);
+  if (audio.duration) $('seek').value = audio.currentTime / audio.duration * 100; };
+$('seek').oninput = e => { if (audio.duration) audio.currentTime = e.target.value / 100 * audio.duration; };
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.setActionHandler('previoustrack', () => $('prev').onclick());
+  navigator.mediaSession.setActionHandler('nexttrack', () => step(1));
+}
+
+$('playall').onclick = () => libShown().length && play(libShown(), 0);
+$('shuffle').onclick = () => { const l = libShown().slice(); for (let i = l.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [l[i], l[j]] = [l[j], l[i]]; } l.length && play(l, 0); };
+$('queueall').onclick = () => libShown().length && enqueue(libShown());
+
+// ---------- official embedded players ----------
+function sheet(title, src) {
+  audio.pause();
+  $('sheettitle').textContent = title;
+  $('embed').innerHTML = `<iframe title="${esc(title)}" allow="autoplay; encrypted-media" src="${esc(src)}"></iframe>`;
+  $('sheet').classList.add('on');
+}
+$('sheetclose').onclick = () => { $('sheet').classList.remove('on'); $('embed').innerHTML = ''; };
+const openDeezer = t => sheet('Deezer: ' + t.title, `https://widget.deezer.com/widget/dark/track/${t.id}`);
+$('full').onclick = () => openDeezer(state.queue[state.qi]);
+$('scform').onsubmit = e => {
+  e.preventDefault();
+  const url = $('scurl').value.trim();
+  if (!/^https:\/\/(on\.|m\.)?soundcloud\.com\//.test(url)) { $('scurl').setCustomValidity('Use a soundcloud.com link'); $('scurl').reportValidity(); return; }
+  $('scurl').setCustomValidity('');
+  addSc(url);
+};
+const scPlay = url => sheet('SoundCloud', `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ffffff&auto_play=true&visual=true`);
+async function addSc(url) {
+  url = url.split('?')[0];
+  try {
+    const o = await jsonp(`https://soundcloud.com/oembed?format=js&url=${encodeURIComponent(url)}`), by = ' by ' + o.author_name;
+    const t = { key: 'sc' + url, source: 'soundcloud', url, title: o.title.endsWith(by) ? o.title.slice(0, -by.length) : o.title,
+      artist: o.author_name, cover: o.thumbnail_url, duration: 0 };
+    state.sc = [t, ...state.sc.filter(x => x.key !== t.key)]; $('scurl').value = ''; rerender();
+    play([t], 0);
+  } catch { toast('Couldn\'t find that on SoundCloud. Use a link to a single public track.'); }
+}
+$('scurl').oninput = () => $('scurl').setCustomValidity('');
+$('scsearch').onclick = () => window.open('https://soundcloud.com/search?q=' + encodeURIComponent($('q').value.trim()), '_blank', 'noopener');
+
+let toastT;
+function toast(msg) { $('toast').textContent = msg; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 2200); }
+
+renderLib(); recommend();
+</script>
+</body>
+</html>

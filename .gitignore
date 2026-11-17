@@ -1,0 +1,6 @@
+windows/bin/
+windows/obj/
+windows/dist/
+ios/GlassMusic.xcodeproj/
+ios/GlassMusic/Info.plist
+build/
