@@ -1,19 +1,47 @@
-# Builds an unsigned GlassMusic.ipa on a GitHub Mac; download it from the run's Artifacts and sign/install it with Sideloadly.
+# Builds an unsigned GlassMusic.ipa on a GitHub Mac and publishes it as a release, with a SideStore source
+# (add https://github.com/Azurexq/MusicGlass/releases/latest/download/source.json in SideStore → Sources).
 name: iPhone build
 on:
   push:
     paths: [index.html, ios/**, .github/workflows/ios.yml]
   workflow_dispatch:
+permissions:
+  contents: write # to create the release
 jobs:
   ipa:
     runs-on: macos-15
+    env:
+      VERSION: 1.0.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
       - run: brew install xcodegen
       - run: cd ios && xcodegen generate
-      - run: xcodebuild -project ios/GlassMusic.xcodeproj -target GlassMusic -configuration Release -sdk iphoneos SYMROOT="$PWD/build" CODE_SIGNING_ALLOWED=NO build
+      - run: xcodebuild -project ios/GlassMusic.xcodeproj -target GlassMusic -configuration Release -sdk iphoneos SYMROOT="$PWD/build" CODE_SIGNING_ALLOWED=NO MARKETING_VERSION=$VERSION CURRENT_PROJECT_VERSION=${{ github.run_number }} build
       - run: mkdir Payload && cp -R build/Release-iphoneos/GlassMusic.app Payload/ && zip -qr GlassMusic.ipa Payload
-      - uses: actions/upload-artifact@v4
-        with:
-          name: GlassMusic-ipa
-          path: GlassMusic.ipa
+      - name: Write SideStore source
+        run: |
+          cat > source.json <<EOF
+          {
+            "name": "Glass Music",
+            "identifier": "com.glassmusic.source",
+            "apps": [{
+              "name": "Glass Music",
+              "bundleIdentifier": "com.glassmusic.app",
+              "developerName": "Azurexq",
+              "localizedDescription": "Your music, playlists and MP3s.",
+              "iconURL": "https://raw.githubusercontent.com/${{ github.repository }}/main/ios/GlassMusic/Assets.xcassets/AppIcon.appiconset/icon.png",
+              "versions": [{
+                "version": "$VERSION",
+                "buildVersion": "${{ github.run_number }}",
+                "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "downloadURL": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/GlassMusic.ipa",
+                "size": $(stat -f%z GlassMusic.ipa)
+              }]
+            }],
+            "news": []
+          }
+          EOF
+          python3 -m json.tool source.json > /dev/null
+      - run: gh release create "v$VERSION" GlassMusic.ipa source.json --title "Glass Music $VERSION" --notes "Built from ${{ github.sha }}" --latest
+        env:
+          GH_TOKEN: ${{ github.token }}

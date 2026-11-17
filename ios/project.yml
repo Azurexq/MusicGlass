@@ -24,6 +24,8 @@ targets:
       path: GlassMusic/Info.plist
       properties:
         CFBundleDisplayName: Glass Music
+        CFBundleShortVersionString: $(MARKETING_VERSION) # the CI sets these per build so SideStore sees updates
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UIBackgroundModes: [audio]
         UIViewControllerBasedStatusBarAppearance: true
