@@ -768,7 +768,7 @@ let toastT;
 function toast(msg) { $('toast').textContent = msg; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 2200); }
 
 // ---------- account + sync: Firebase Auth + Firestore over REST, one document per user (users/{uid}) ----------
-const FB = { apiKey: '', projectId: '' }; // Firebase console → Project settings → Your apps → Web app config
+const FB = { apiKey: 'AIzaSyCBzQD6iOT9RQtNob-_0lOKAX_Whcz2pg0', projectId: 'musicglass' }; // Firebase console → Project settings → Your apps → Web app config
 function ls(k, v) { try { v === undefined ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} }
 var auth = (() => { try { return JSON.parse(localStorage.getItem('gm-auth')); } catch { return null; } })(), syncT, syncing = Promise.resolve(); // var: changed() may run before this line
 const localT = () => +localStorage.getItem('gm-t') || 0, baseT = () => +localStorage.getItem('gm-base') || 0;
