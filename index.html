@@ -9,26 +9,38 @@
   :root { --text: #f4f4f6; --dim: rgba(255,255,255,.6); --line: rgba(255,255,255,.14); --fill: rgba(255,255,255,.08);
     --fill2: rgba(255,255,255,.16); --r: 10px; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
+  html, body { margin: 0; height: 100%; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
   body { font: 14px/1.35 -apple-system, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif; color: var(--text);
-    background: #1c1c20; overflow: hidden; }
+    overflow: hidden; background: radial-gradient(60% 50% at 8% 92%, rgba(110,80,255,.32), transparent 70%),
+      radial-gradient(50% 45% at 96% 68%, rgba(255,70,150,.22), transparent 70%),
+      radial-gradient(55% 40% at 60% 6%, rgba(40,160,255,.16), transparent 70%), #141418; }
   button, input { font: inherit; color: inherit; }
   button { cursor: pointer; }
   /* blurred cover behind everything, fading to the base colour */
   #bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
   #bg img { position: absolute; left: -10%; top: -30%; width: 120%; height: 90%; object-fit: cover;
-    filter: blur(90px) saturate(1.5); opacity: .55; transition: opacity .8s; }
-  #bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 20%, #1c1c20 75%); }
+    filter: blur(90px) saturate(1.5); opacity: .55; transition: opacity .8s;
+    -webkit-mask-image: linear-gradient(#000 30%, transparent 85%); mask-image: linear-gradient(#000 30%, transparent 85%); }
 
-  .app { position: relative; z-index: 1; display: grid; grid-template-columns: 60px 1fr; height: 100%; }
-  nav { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0 110px; }
+  /* env(safe-area-inset-*) keeps content clear of the iPhone notch, status bar and home bar */
+  /* frosted strip under the iPhone status bar so scrolled content doesn't run behind the time and battery */
+  body::before { content: ""; position: fixed; z-index: 12; top: 0; left: 0; right: 0; height: env(safe-area-inset-top);
+    background: rgba(28,28,32,.7); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); pointer-events: none; }
+  .app { position: relative; z-index: 1; display: grid; grid-template-columns: 60px 1fr; height: 100%;
+    padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+  nav { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0; border-radius: 20px;
+    margin: calc(12px + env(safe-area-inset-top)) 0 96px 8px; }
   nav .logo { width: 30px; height: 30px; margin-bottom: 18px; }
+  #acctbtn { margin-top: auto; }
+  #acctbtn.on { color: var(--text); }
+  #acct [hidden] { display: none; }
   nav button { width: 40px; height: 40px; border: 0; border-radius: var(--r); background: none; color: var(--dim);
     display: grid; place-items: center; }
-  nav button:hover, nav button[aria-current="true"] { color: var(--text); background: var(--fill); }
+  nav button:hover, nav button[aria-current="true"] { color: var(--text); background: rgba(255,255,255,.14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.22); }
   svg { width: 20px; height: 20px; fill: currentColor; }
 
-  main { overflow-y: auto; padding: 22px 22px 130px 12px; }
+  main { overflow-y: auto; overscroll-behavior: contain; padding: calc(22px + env(safe-area-inset-top)) 22px 130px 12px; }
   .view[hidden] { display: none; }
   .head { display: flex; gap: 18px; align-items: flex-end; margin-bottom: 18px; flex-wrap: wrap; }
   .mosaic { width: 148px; height: 148px; border-radius: 12px; overflow: hidden; display: grid; grid-template: 1fr 1fr / 1fr 1fr;
@@ -82,8 +94,14 @@
   #menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 8px; }
   #menu button:hover { background: var(--fill2); } #menu button:disabled { color: var(--dim); cursor: default; background: none; }
 
-  .glass { background: rgba(38,38,44,.55); border: 1px solid var(--line); backdrop-filter: blur(40px) saturate(1.7);
-    -webkit-backdrop-filter: blur(40px) saturate(1.7); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 40px rgba(0,0,0,.4); }
+  /* Liquid Glass: thin tint + diagonal sheen + bright top edge, blurred and saturated over the colour behind */
+  .glass, .list, nav, .btn:not(.primary), .field, .pill {
+    background: linear-gradient(160deg, rgba(255,255,255,.14), rgba(255,255,255,.03) 55%), rgba(36,36,48,.34);
+    border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(255,255,255,.05);
+    backdrop-filter: blur(30px) saturate(1.8); -webkit-backdrop-filter: blur(30px) saturate(1.8); }
+  .glass, .list, nav { box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(255,255,255,.05), 0 10px 40px rgba(0,0,0,.3); }
+  .glass, .list { border-radius: 16px; }
+  .btn:not(.primary):hover { background: linear-gradient(160deg, rgba(255,255,255,.24), rgba(255,255,255,.08) 55%), rgba(46,46,60,.4); }
   #player { position: fixed; z-index: 10; left: 72px; right: 12px; bottom: 12px; border-radius: 16px; padding: 10px 14px;
     display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 14px; }
   #player .cur { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -100,12 +118,13 @@
   #sheet.on { display: block; }
   #sheet .top { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 8px; color: var(--dim); font-size: 13px; }
   #sheet iframe { width: 100%; height: 300px; border: 0; border-radius: 12px; display: block; }
-  #toast { position: fixed; z-index: 30; left: 50%; top: 16px; transform: translateX(-50%); padding: 8px 14px; border-radius: 10px;
+  #toast { position: fixed; z-index: 30; left: 50%; top: calc(16px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 8px 14px; border-radius: 10px;
     display: none; } #toast.on { display: block; }
 
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
   .card { background: none; border: 0; color: inherit; text-align: left; padding: 0; cursor: pointer; font: inherit; font-size: 13px; }
-  .card img { width: 100%; aspect-ratio: 1; border-radius: 10px; object-fit: cover; display: block; margin-bottom: 6px; }
+  .card img { width: 100%; aspect-ratio: 1; border-radius: 12px; object-fit: cover; display: block; margin-bottom: 6px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 8px 24px rgba(0,0,0,.35); }
   .card:focus-visible { outline: 2px solid #fff; border-radius: 10px; }
   .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
   .chips .btn[aria-pressed=true] { background: rgba(255,255,255,.9); color: #111; }
@@ -117,18 +136,26 @@
   #impres .r span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (max-width: 720px) {
     .app { grid-template-columns: 1fr; }
-    nav { position: fixed; z-index: 11; left: 0; right: 0; bottom: 0; flex-direction: row; justify-content: center; gap: 28px;
-      padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); background: rgba(28,28,32,.7);
-      backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); }
+    :root { --navb: max(10px, calc(env(safe-area-inset-bottom) - 10px)); }
+    nav { position: fixed; z-index: 11; left: calc(12px + env(safe-area-inset-left)); right: calc(12px + env(safe-area-inset-right));
+      bottom: var(--navb); margin: 0; flex-direction: row; justify-content: space-evenly; gap: 0; padding: 6px; border-radius: 28px; }
     nav .logo { display: none; }
-    main { padding: 16px 16px 190px; }
-    #player { left: 8px; right: 8px; bottom: calc(58px + env(safe-area-inset-bottom)); grid-template-columns: minmax(0,1fr) auto; }
+    nav button { width: 56px; height: 44px; border-radius: 22px; } #acctbtn { margin-top: 0; }
+    main { padding: calc(12px + env(safe-area-inset-top)) 16px 220px; }
+    #player { left: 12px; right: 12px; bottom: calc(var(--navb) + 66px); border-radius: 22px; grid-template-columns: minmax(0,1fr) auto; }
     #player .ctrl { width: auto; } #player .seek, #player .side { display: none; }
-    #sheet { bottom: calc(140px + env(safe-area-inset-bottom)); right: 8px; width: calc(100% - 16px); }
+    #sheet { bottom: calc(var(--navb) + 148px); right: 12px; width: calc(100% - 24px); }
     .mosaic { width: 112px; height: 112px; }
-    .tools { margin-left: 0; width: 100%; } .tools .field { flex: 1; } .tools .field input { width: 100%; }
+    .tools { margin-left: 0; width: 100%; } .tools .field { flex: 1 1 100%; } .tools .field input { width: 100%; }
     .src { display: none; }
+    /* 16px stops iOS zooming in when a text field is tapped; 40px+ targets are easier to hit */
+    .field input, dialog input { font-size: 16px; } .field, .btn { height: 40px; }
+    .row { grid-template-columns: 48px 1fr auto 40px; } .kebab { width: 40px; height: 40px; }
+    dialog.glass { max-height: calc(100% - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow: auto; }
   }
+  /* touch screens keep :hover after a tap, which leaves rows highlighted */
+  @media (hover: none) { .row:hover:not(:focus-visible), .kebab:hover { background: none; }
+    nav button:hover:not([aria-current="true"]) { background: none; color: var(--dim); } }
 </style>
 </head>
 <body>
@@ -146,6 +173,8 @@
       <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg></button>
     <button data-view="search" aria-current="false" aria-label="Search" title="Search">
       <svg viewBox="0 0 24 24"><path d="M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg></button>
+    <button id="acctbtn" aria-label="Account and sync" title="Account and sync">
+      <svg viewBox="0 0 24 24"><path d="M12 3a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zm0 11c4.4 0 8 2.2 8 5v2H4v-2c0-2.8 3.6-5 8-5z"/></svg></button>
   </nav>
 
   <main>
@@ -261,6 +290,19 @@
     <div class="btns"><label class="btn">Upload CSV<input type="file" id="txtfile" accept=".csv,.txt" hidden></label><button class="btn primary">Match on Deezer</button></div>
   </form>
 </dialog>
+<dialog id="acct" class="glass" aria-labelledby="accth">
+  <form id="acctform">
+    <h2 id="accth" style="margin:0 0 4px;font-size:18px">Account</h2>
+    <div class="desc" id="acctdesc">Log in to keep your library and playlists the same on every device. Your MP3 files stay on each device.</div>
+    <div id="acctin">
+      <label class="field"><input id="acctemail" type="email" autocomplete="username" placeholder="Email" aria-label="Email" required></label>
+      <label class="field"><input id="acctpw" type="password" autocomplete="current-password" placeholder="Password (6+ characters)" aria-label="Password" minlength="6" required></label>
+      <div class="btns"><button class="btn primary" value="in">Log in</button><button class="btn" value="up">Create account</button><button class="btn" type="button" id="acctclose">Close</button></div>
+    </div>
+    <div id="acctout" class="btns" hidden><button class="btn primary" type="button" id="acctsync">Sync now</button><button class="btn" type="button" id="acctlogout">Log out</button><button class="btn" type="button" id="acctclose2">Close</button></div>
+    <div id="acctres" class="desc" aria-live="polite" style="margin-top:10px"></div>
+  </form>
+</dialog>
 <div id="menu" role="menu"></div>
 <div id="toast" class="glass" role="status"></div>
 <audio id="audio"></audio>
@@ -278,15 +320,16 @@ function noteRecent(t) {
   if (!t.artistId) return;
   state.recent = [{ id: t.artistId, name: t.artist }, ...state.recent.filter(a => a.id !== t.artistId)].slice(0, 10);
   try { localStorage.setItem('gm-recent', JSON.stringify(state.recent)); } catch {}
+  changed();
 }
 
 // ---------- storage: library metadata in localStorage, MP3 bytes in IndexedDB ----------
 function loadLib() { try { return JSON.parse(localStorage.getItem('gm-lib')) || []; } catch { return []; } }
 function loadPl() { try { return JSON.parse(localStorage.getItem('gm-pl')) || []; } catch { return []; } }
-function savePl() { try { localStorage.setItem('gm-pl', JSON.stringify(state.playlists)); } catch { toast('Could not save playlists'); } }
+function savePl() { try { localStorage.setItem('gm-pl', JSON.stringify(state.playlists)); } catch { toast('Could not save playlists'); } changed(); }
 const curPl = () => state.playlists.find(p => p.id === state.cur);
 const curList = () => curPl()?.tracks || state.lib;
-function saveLib() { try { localStorage.setItem('gm-lib', JSON.stringify(state.lib)); } catch { toast('Could not save library'); } }
+function saveLib() { try { localStorage.setItem('gm-lib', JSON.stringify(state.lib)); } catch { toast('Could not save library'); } changed(); }
 const dbp = new Promise((ok, no) => {
   const r = indexedDB.open('glassmusic', 1);
   r.onupgradeneeded = () => r.result.createObjectStore('files');
@@ -448,8 +491,8 @@ $('gplplay').onclick = () => state.g.gpltracks?.length && play(state.g.gpltracks
 $('gplsave').onclick = () => importPl($('gplview').dataset.id);
 
 // ---------- views ----------
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-current', x === b));
+document.querySelectorAll('nav button[data-view]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button[data-view]').forEach(x => x.setAttribute('aria-current', x === b));
   document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'v-' + b.dataset.view);
   if (b.dataset.view === 'search') $('q').focus();
   if (b.dataset.view === 'home') recommend();
@@ -723,6 +766,93 @@ $('scsearch').onclick = () => window.open('https://soundcloud.com/search?q=' + e
 
 let toastT;
 function toast(msg) { $('toast').textContent = msg; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 2200); }
+
+// ---------- account + sync: Firebase Auth + Firestore over REST, one document per user (users/{uid}) ----------
+const FB = { apiKey: '', projectId: '' }; // Firebase console → Project settings → Your apps → Web app config
+function ls(k, v) { try { v === undefined ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} }
+var auth = (() => { try { return JSON.parse(localStorage.getItem('gm-auth')); } catch { return null; } })(), syncT, syncing = Promise.resolve(); // var: changed() may run before this line
+const localT = () => +localStorage.getItem('gm-t') || 0, baseT = () => +localStorage.getItem('gm-base') || 0;
+const AUTH_ERR = { EMAIL_EXISTS: 'That email already has an account. Log in instead.', EMAIL_NOT_FOUND: 'Wrong email or password.', INVALID_PASSWORD: 'Wrong email or password.',
+  INVALID_LOGIN_CREDENTIALS: 'Wrong email or password.', INVALID_EMAIL: "That email doesn't look right.", WEAK_PASSWORD: 'Use at least 6 characters.', TOO_MANY_ATTEMPTS_TRY_LATER: 'Too many tries. Wait a bit.' };
+async function post(url, body, type = 'application/json') {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': type }, body });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const code = String(j.error?.message || r.status).split(' ')[0]; throw Object.assign(new Error(AUTH_ERR[code] || 'Login failed (' + code + ')'), { code }); }
+  return j;
+}
+function setAuth(a) { auth = a; ls('gm-auth', a ? JSON.stringify(a) : undefined); $('acctbtn').classList.toggle('on', !!a); }
+async function token() {
+  if (Date.now() < auth.exp - 60000) return auth.idToken;
+  const j = await post('https://securetoken.googleapis.com/v1/token?key=' + FB.apiKey,
+    'grant_type=refresh_token&refresh_token=' + encodeURIComponent(auth.refreshToken), 'application/x-www-form-urlencoded')
+    .catch(e => { if (!e.code) throw e; setAuth(null); acctUI(); throw new Error('Please log in again'); }); // no code = offline: stay logged in
+  setAuth({ ...auth, idToken: j.id_token, refreshToken: j.refresh_token, exp: Date.now() + j.expires_in * 1000 });
+  return auth.idToken;
+}
+async function doc(method, data) {
+  const r = await fetch(`https://firestore.googleapis.com/v1/projects/${FB.projectId}/databases/(default)/documents/users/${auth.uid}`,
+    { method, headers: { Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/json' }, body: data && JSON.stringify({ fields: { data: { stringValue: data } } }) });
+  if (method === 'GET' && r.status === 404) return null;
+  if (!r.ok) throw new Error('Sync failed (' + r.status + ')');
+  return method === 'GET' ? JSON.parse((await r.json()).fields.data.stringValue) : null;
+}
+const union = (a = [], b = [], k) => [...a, ...b.filter(x => !a.some(y => y[k] === x[k]))];
+function merge(r) { // both devices changed since the last sync: keep everything from both
+  const pls = (r.playlists || []).map(p => { const l = state.playlists.find(x => x.id === p.id); return l ? { ...p, tracks: union(p.tracks, l.tracks, 'key') } : p; });
+  return { t: Date.now(), lib: union(r.lib, state.lib, 'key'), playlists: union(pls, state.playlists, 'id'), recent: union(r.recent, state.recent, 'id').slice(0, 10) };
+}
+function applyData(d) {
+  Object.assign(state, { lib: d.lib || [], playlists: d.playlists || [], recent: d.recent || [] });
+  ls('gm-lib', JSON.stringify(state.lib)); ls('gm-pl', JSON.stringify(state.playlists)); ls('gm-recent', JSON.stringify(state.recent)); ls('gm-t', d.t);
+  rerender();
+}
+// shortcut: whole library in one Firestore doc (max 1 MiB); MP3 covers are dropped when it gets close. Split per playlist if libraries outgrow it.
+function packed() {
+  const d = { t: localT(), lib: state.lib, playlists: state.playlists, recent: state.recent };
+  let s = JSON.stringify(d);
+  if (s.length > 900000) s = JSON.stringify(d, (k, v) => k === 'cover' && String(v).startsWith('data:') ? undefined : v);
+  if (s.length > 900000) throw new Error('Library too big to sync');
+  return s;
+}
+function sync() { // newer side wins; if both changed since the last sync, merge
+  return syncing = syncing.catch(() => {}).then(async () => {
+    if (!auth || !FB.apiKey) return;
+    clearTimeout(syncT);
+    const r = await doc('GET'), dirty = localT() > baseT();
+    if (r && r.t !== baseT()) {
+      if (!dirty) { applyData(r); ls('gm-base', r.t); return; }
+      applyData(merge(r));
+    }
+    if (dirty || !r || r.t !== baseT()) { const t = localT(); await doc('PATCH', packed()); ls('gm-base', t); }
+  });
+}
+function changed() { ls('gm-t', Date.now()); if (auth) { clearTimeout(syncT); syncT = setTimeout(() => sync().catch(e => console.warn(e)), 1500); } }
+function acctUI(msg) {
+  $('acctin').hidden = !!auth; $('acctout').hidden = !auth;
+  $('acctres').textContent = msg ?? (auth ? 'Logged in as ' + auth.email : FB.apiKey ? '' : "Sync isn't set up yet (Firebase keys missing).");
+}
+const acct = $('acct');
+$('acctbtn').onclick = () => { acctUI(); acct.showModal(); };
+$('acctclose').onclick = $('acctclose2').onclick = () => acct.close();
+$('acctform').onsubmit = async e => {
+  e.preventDefault();
+  if (!FB.apiKey) return acctUI();
+  const up = e.submitter?.value === 'up';
+  acctUI(up ? 'Creating account…' : 'Logging in…');
+  try {
+    const j = await post(`https://identitytoolkit.googleapis.com/v1/accounts:${up ? 'signUp' : 'signInWithPassword'}?key=${FB.apiKey}`,
+      JSON.stringify({ email: $('acctemail').value.trim(), password: $('acctpw').value, returnSecureToken: true }));
+    ls('gm-base'); if (state.lib.length || state.playlists.length) ls('gm-t', Date.now()); // first sync on this device merges with the account
+    setAuth({ uid: j.localId, email: j.email, idToken: j.idToken, refreshToken: j.refreshToken, exp: Date.now() + j.expiresIn * 1000 });
+    $('acctpw').value = '';
+    await sync(); acctUI('Synced. Logged in as ' + auth.email);
+  } catch (err) { acctUI(err.message); }
+};
+$('acctsync').onclick = () => { acctUI('Syncing…'); sync().then(() => acctUI('Synced. Logged in as ' + auth.email), e => acctUI(e.message)); };
+$('acctlogout').onclick = () => { setAuth(null); ls('gm-base'); acctUI('Logged out. Your songs stay on this device.'); };
+const bg = () => document.visibilityState === 'visible' && sync().catch(e => console.warn(e));
+document.addEventListener('visibilitychange', bg); addEventListener('focus', bg); setInterval(bg, 120000);
+setAuth(auth); bg();
 
 renderLib(); recommend();
 </script>
